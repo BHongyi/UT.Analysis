@@ -1,4 +1,5 @@
-﻿using UT.Coverage.Analysis.Dto;
+﻿using System.Linq.Expressions;
+using UT.Coverage.Analysis.Dto;
 
 namespace UT.Coverage.Analysis.Common
 {
@@ -8,22 +9,6 @@ namespace UT.Coverage.Analysis.Common
         {
             exp.ID = Constant.CHILDFLG + Guid.NewGuid().ToString();
             exp.CondtionStr = expression;
-            if (expression.IndexOf("|") > -1 && expression.IndexOf("&") > -1 && expression.IndexOf("|") < expression.IndexOf("&"))
-            {
-                exp.JudgeFlg = Constant.OR;
-            }
-            else if (expression.IndexOf("|") > -1 && expression.IndexOf("&") > -1 && expression.IndexOf("|") > expression.IndexOf("&"))
-            {
-                exp.JudgeFlg = Constant.AND;
-            }
-            else if (expression.IndexOf("|") > -1 && expression.IndexOf("&") == -1)
-            {
-                exp.JudgeFlg = Constant.OR;
-            }
-            else if (expression.IndexOf("|") == -1 && expression.IndexOf("&") > -1)
-            {
-                exp.JudgeFlg = Constant.AND;
-            }
 
             //Replace parentheses
             string tempParenthese = exp.CondtionStr;
@@ -38,6 +23,23 @@ namespace UT.Coverage.Analysis.Common
                 string tempEndExpression = exp.CondtionStr.Substring(endIndex + 1);
                 exp.ChildExpressionDTO.Add(new());
                 exp.CondtionStr = tempStartExpression + HandleExpression(exp.CondtionStr.Substring(startIndex + 1, endIndex - startIndex - 1), exp.ChildExpressionDTO.Last()) + tempEndExpression;
+            }
+
+            if (exp.CondtionStr.IndexOf("|") > -1 && exp.CondtionStr.IndexOf("&") > -1 && exp.CondtionStr.IndexOf("|") < exp.CondtionStr.IndexOf("&"))
+            {
+                exp.JudgeFlg = Constant.OR;
+            }
+            else if (exp.CondtionStr.IndexOf("|") > -1 && exp.CondtionStr.IndexOf("&") > -1 && exp.CondtionStr.IndexOf("|") > exp.CondtionStr.IndexOf("&"))
+            {
+                exp.JudgeFlg = Constant.AND;
+            }
+            else if (exp.CondtionStr.IndexOf("|") > -1 && exp.CondtionStr.IndexOf("&") == -1)
+            {
+                exp.JudgeFlg = Constant.OR;
+            }
+            else if (exp.CondtionStr.IndexOf("|") == -1 && exp.CondtionStr.IndexOf("&") > -1)
+            {
+                exp.JudgeFlg = Constant.AND;
             }
 
             exp.CondtionStr = RestoreParentheses(exp.CondtionStr);
@@ -86,7 +88,18 @@ namespace UT.Coverage.Analysis.Common
                 tempAfterCondition = condition.Substring(condition.IndexOf(".Substring(") + 11);
                 condition = tempFrontCondition + Constant.REPLACEFLGSTART + tempAfterCondition;
             }
-
+            if (condition.IndexOf(".Any(") > -1)
+            {
+                //Replace )
+                int endIndex = GetEndIndex(condition, condition.IndexOf(".Any("));
+                string tempFrontCondition = condition.Substring(0, endIndex);
+                string tempAfterCondition = condition.Substring(endIndex + 1);
+                condition = tempFrontCondition + Constant.REPLACEFLGEND + tempAfterCondition;
+                //Replace (
+                tempFrontCondition = condition.Substring(0, condition.IndexOf(".Any(") + 4);
+                tempAfterCondition = condition.Substring(condition.IndexOf(".Any(") + 5);
+                condition = tempFrontCondition + Constant.REPLACEFLGSTART + tempAfterCondition;
+            }
             foreach (string specialMethod in Constant.SPECTIALMETHOD)
             {
                 if (condition.IndexOf(specialMethod) > -1)
@@ -185,7 +198,7 @@ namespace UT.Coverage.Analysis.Common
                 {
                     if (exp.ConditionList[i].IndexOf(Constant.CHILDFLG) > -1)
                     {
-                        tempCondition += GetNotExpressionByChild(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[i].Trim()));
+                        tempCondition += GetNotExpressionByChild(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[i].Trim().TrimStart('!')));
                     }
                     else
                     {
@@ -204,7 +217,7 @@ namespace UT.Coverage.Analysis.Common
             {
                 if (exp.ConditionList[0].IndexOf(Constant.CHILDFLG) > -1)
                 {
-                    return GetNotExpressionByChild(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[0].Trim()));
+                    return GetNotExpressionByChild(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[0].Trim().TrimStart('!')));
                 }
                 else
                 {
@@ -222,7 +235,7 @@ namespace UT.Coverage.Analysis.Common
                 {
                     if (exp.ConditionList[i].IndexOf(Constant.CHILDFLG) > -1)
                     {
-                        tempCondition += GetExpressionByChild(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[i].Trim()));
+                        tempCondition += GetExpressionByChild(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[i].Trim().TrimStart('!')));
                     }
                     else
                     {
@@ -241,7 +254,7 @@ namespace UT.Coverage.Analysis.Common
             {
                 if (exp.ConditionList[0].IndexOf(Constant.CHILDFLG) > -1)
                 {
-                    return GetExpressionByChild(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[0].Trim()));
+                    return GetExpressionByChild(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[0].Trim().TrimStart('!')));
                 }
                 else
                 {
@@ -254,6 +267,14 @@ namespace UT.Coverage.Analysis.Common
         {
             if (exp.JudgeFlg == Constant.OR)
             {
+                string falseExpression = GetNotExpressionByChild(exp);
+                if (!string.IsNullOrEmpty(parentCondition) && parentCondition.IndexOf(exp.ID) > -1)
+                {
+                    falseExpression = parentCondition.Replace(exp.ID, "(" + falseExpression + ")");
+                }
+
+                results.Add(falseExpression);
+
                 for (int i = 0; i < exp.ConditionList.Count; i++)
                 {
                     string tempCondition = string.Empty;
@@ -265,7 +286,7 @@ namespace UT.Coverage.Analysis.Common
                         {
                             if (exp.ConditionList[j].IndexOf(Constant.CHILDFLG) > -1)
                             {
-                                tempCondition += "(" + GetNotExpressionByChild(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[j].Trim())) + ")" + Constant.AND;
+                                tempCondition += "(" + GetNotExpressionByChild(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[j].Trim().TrimStart('!'))) + ")" + Constant.AND;
                             }
                             else
                             {
@@ -285,7 +306,7 @@ namespace UT.Coverage.Analysis.Common
                     //if it's a expression that have child element, it will expand the child element
                     if (exp.ConditionList[i].IndexOf(Constant.CHILDFLG) > -1)
                     {
-                        GetPatterns(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[i].Trim()), results, tempCondition);
+                        GetPatterns(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[i].Trim().TrimStart('!')), results, tempCondition);
                     }
                     else 
                     {
@@ -314,7 +335,7 @@ namespace UT.Coverage.Analysis.Common
                         {
                             if (exp.ConditionList[j].IndexOf(Constant.CHILDFLG) > -1)
                             {
-                                tempCondition += "(" + GetExpressionByChild(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[j].Trim())) + ")" + Constant.AND;
+                                tempCondition += "(" + GetExpressionByChild(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[j].Trim().TrimStart('!'))) + ")" + Constant.AND;
                             }
                             else
                             {
@@ -336,7 +357,7 @@ namespace UT.Coverage.Analysis.Common
                     //if it's a expression that have child element, it will expand the child element
                     if (exp.ConditionList[i].IndexOf(Constant.CHILDFLG) > -1)
                     {
-                        GetPatterns(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[i].Trim()), results, tempCondition);
+                        GetPatterns(exp.ChildExpressionDTO.First(o => o.ID == exp.ConditionList[i].Trim().TrimStart('!')), results, tempCondition);
                     }
                     else
                     {

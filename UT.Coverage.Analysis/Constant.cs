@@ -19,7 +19,8 @@ namespace UT.Coverage.Analysis
         {
             ".IsNullOrEmpty(",
             ".StartsWith(",
-            ".Substring("
+            ".Substring(",
+            ".Any("
         };
     }
 }

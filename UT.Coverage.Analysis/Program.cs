@@ -9,7 +9,11 @@ string coveragePath = "../UT.TestPrject/coverage/UT.Project_App.xml";
 
 //string expression = "if (i == 1 && k.StartsWith(\"11\") && k.Length >= 2 && (j == \"3\" || j == \"4\"))";
 
-string expression = "if (i == 1 && j.StartsWith(\"1\") && k.Length >= 2 && (k.Substring(1,1) == \"3\" || k.Substring(1, 1) == \"4\"))";
+//string expression = "if (i == 1 && j.StartsWith(\"1\") && k.Length >= 2 && (k.Substring(1,1) == \"3\" || k.Substring(1, 1) == \"4\"))";
+
+//string expression = "if (k.Length >= 3 && (k.Substring(2,1).Any(Char.IsNumber) || k.Substring(2,1) == \"L\"))";
+
+string expression = "if ((i == 1 || i == 2) && j == \"3\")";
 
 //string expression = "if (i == 1 || i == 2 || i == 3)";
 
