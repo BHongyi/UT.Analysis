@@ -13,7 +13,11 @@ string coveragePath = "../UT.TestPrject/coverage/UT.Project_App.xml";
 
 //string expression = "if (k.Length >= 3 && (k.Substring(2,1).Any(Char.IsNumber) || k.Substring(2,1) == \"L\"))";
 
-string expression = "if ((i == 1 || i == 2) && j == \"3\")";
+//string expression = "if ((i == 1 || i == 2) && j == \"3\")";
+
+//string expression = "if ((i == 1 || i == 2) && j == \"3\" && (!string.IsNullOrEmpty(k) && k.Length >= 1 && k.StartsWith('a')))";
+
+string expression = "if (!(i == 1 || i == 2 || !(i == 4 && j != \"5\")) && j == \"3\" && !(!string.IsNullOrEmpty(k) && k.StartsWith('b')))";
 
 //string expression = "if (i == 1 || i == 2 || i == 3)";
 
@@ -25,6 +29,8 @@ handledExpression = handledExpression.Substring(0, handledExpression.LastIndexOf
 
 ExpressionDTO exp = new();
 Common.HandleExpression(handledExpression,exp);
+
+Common.HandleFalseFlgForChild(exp);
 
 List<string> conditions = new List<string>();
 
